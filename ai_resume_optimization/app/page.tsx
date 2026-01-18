@@ -1,69 +1,128 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState, useEffect } from 'react'
+import { BiBrain, BiEdit, BiArrowToRight } from 'react-icons/bi'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import PageHeader from '@/app/components/PageHeader'
+
+export default function HomePage() {
+  const [hasConfig, setHasConfig] = useState(false)
+
+  useEffect(() => {
+    const config = localStorage.getItem('aiConfig')
+    setHasConfig(!!config)
+  }, [])
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="bg-blue-500 text-white p-4 rounded-md">
-          如果看到蓝色背景，说明 Tailwind CSS 工作正常！
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={<BiBrain className="text-2xl" />}
+        title="AI 简历优化系统"
+        subtitle="使用 AI 智能优化您的简历"
+      />
 
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* AI配置卡片 */}
+        <Card className="animate-in fade-in slide-in-from-bottom-5 duration-700 hover:shadow-lg transition-shadow cursor-pointer group">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BiBrain className="text-purple-500 text-2xl" />
+              AI 配置
+            </CardTitle>
+            <CardDescription>
+              配置 API 接口、模型和密钥
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                设置 AI 服务的 API 地址、访问密钥和模型名称，支持测试连接
+              </p>
+              <div className="flex items-center gap-2 text-sm">
+                {hasConfig ? (
+                  <span className="text-green-500 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                    已配置
+                  </span>
+                ) : (
+                  <span className="text-yellow-500 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    未配置
+                  </span>
+                )}
+              </div>
+              <Button
+                onClick={() => window.location.href = '/ai-config'}
+                className="w-full group-hover:bg-purple-600 transition-colors"
+              >
+                前往配置
+                <BiArrowToRight className="ml-2" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 简历优化卡片 */}
+        <Card className="animate-in fade-in slide-in-from-bottom-6 duration-700 hover:shadow-lg transition-shadow cursor-pointer group">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BiEdit className="text-emerald-500 text-2xl" />
+              简历优化
+            </CardTitle>
+            <CardDescription>
+              填写简历信息，获取 AI 优化建议
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                填写您的简历基本信息、教育经历、项目经验等，AI 将根据目标岗位描述优化您的简历
+              </p>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-blue-500 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  智能优化
+                </span>
+              </div>
+              <Button
+                onClick={() => window.location.href = '/resume'}
+                className="w-full group-hover:bg-emerald-600 transition-colors"
+              >
+                开始优化
+                <BiArrowToRight className="ml-2" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 使用说明 */}
+      <Card className="border-primary/20 bg-primary/5 animate-in fade-in slide-in-from-bottom-7 duration-700">
+        <CardHeader>
+          <CardTitle>使用说明</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <div className="flex gap-3">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
+              <p>首先在 <strong className="text-foreground">AI 配置</strong> 页面设置您的 API 接口信息</p>
+            </div>
+            <div className="flex gap-3">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</span>
+              <p>在 <strong className="text-foreground">简历优化</strong> 页面填写您的简历信息和目标岗位描述</p>
+            </div>
+            <div className="flex gap-3">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</span>
+              <p>点击 <strong className="text-foreground">开始优化</strong> 按钮，AI 将分析并提供优化建议</p>
+            </div>
+            <div className="flex gap-3">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">4</span>
+              <p>查看优化结果，可以复制保存或继续调整</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  );
+  )
 }

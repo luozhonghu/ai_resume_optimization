@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { BiEnvelope, BiBriefcase, BiSearch, BiTask, BiUserCircle, BiBrain, BiMoon, BiSun } from 'react-icons/bi'
+import { BiBriefcase, BiSearch, BiBrain, BiMoon, BiSun, BiEdit } from 'react-icons/bi'
 import { motion } from 'framer-motion'
 import { useTheme } from 'next-themes'
 
@@ -64,8 +64,8 @@ export default function Sidebar() {
   }, [])
 
   const envGroup = [
-    { href: '/env-config', icon: BiEnvelope, label: '环境配置', color: 'text-cyan-300' },
     { href: '/ai-config', icon: BiBrain, label: 'AI配置', color: 'text-purple-300' },
+    { href: '/resume', icon: BiEdit, label: '简历优化', color: 'text-emerald-300' },
   ]
 
 
@@ -142,9 +142,9 @@ export default function Sidebar() {
 
       {/* 导航菜单 */}
       <nav className="p-4 space-y-4 overflow-y-auto h-[calc(100vh-280px)]">
-        {/* 环境配置分组 */}
+        {/* 简历优化分组 */}
         <div>
-          <div className="px-4 py-2 text-white dark:text-waterloo text-xs uppercase tracking-wide">环境配置</div>
+          <div className="px-4 py-2 text-white dark:text-waterloo text-xs uppercase tracking-wide">简历优化</div>
           <div className="space-y-2">
             {envGroup.map((item, index) => {
               const Icon = item.icon

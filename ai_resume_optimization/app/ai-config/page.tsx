@@ -1,243 +1,187 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { BiSave, BiBrain, BiInfoCircle } from 'react-icons/bi'
+import { useState } from 'react'
+import { BiSave, BiCheckCircle, BiXCircle, BiLoader, BiCodeBlock } from 'react-icons/bi'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import PageHeader from '@/app/components/PageHeader'
 
 export default function AiConfigPage() {
-  const [aiConfig, setAiConfig] = useState({
-    introduce: '',
-    prompt: '',
+  const [config, setConfig] = useState({
+    baseUrl: '',
+    apiKey: '',
+    model: 'deepseek-v3',
   })
 
-  const [loading, setLoading] = useState(false)
-  // 是否启用AI（映射 boss_config.enable_ai）
-  const [enableAi, setEnableAi] = useState<number>(0)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [showDialog, setShowDialog] = useState(false)
 
-  // 加载AI配置
-  useEffect(() => {
-    fetchAiConfig()
-    fetchEnableAi()
-  }, [])
+  const testConnection = async () => {
+    setTesting(true)
+    setTestResult(null)
 
-  const fetchAiConfig = async () => {
     try {
-      const response = await fetch('http://localhost:8888/api/ai/config', {
-        method: 'GET',
+      const response = await fetch(config.baseUrl + '/v3/chat/completions', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.apiKey}`
         },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [{ role: 'user', content: '你好' }],
+          max_tokens: 10
+        })
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const result = await response.json()
-      if (result.success && result.data) {
-        setAiConfig({
-          introduce: result.data.introduce || '',
-          prompt: result.data.prompt || '',
-        })
+      if (response.ok) {
+        const data = await response.json()
+        if (data.choices && data.choices.length > 0) {
+          setTestResult({ success: true, message: '接口连接成功！' })
+        } else {
+          setTestResult({ success: false, message: '接口返回格式异常' })
+        }
+      } else {
+        const error = await response.text()
+        setTestResult({ success: false, message: `连接失败: ${response.status} ${error}` })
       }
     } catch (error) {
-      console.error('加载AI配置失败:', error)
-      // 如果加载失败，使用默认值，不影响用户使用
-      console.log('使用默认配置')
-    }
-  }
-
-  // 加载 boss_config 的 enable_ai 字段
-  const fetchEnableAi = async () => {
-    try {
-      const response = await fetch('http://localhost:8888/api/boss/config', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const result = await response.json()
-      const raw = result?.config?.enableAi
-      const val = String(raw ?? '').trim().toLowerCase()
-      setEnableAi(val === '1' || val === 'true' || val === 'on' ? 1 : Number(raw) === 1 ? 1 : 0)
-    } catch (e) {
-      console.error('加载enable_ai失败:', e)
-    }
-  }
-
-  // 切换 AI 开关并保存到 boss_config
-  const toggleEnableAi = async () => {
-    try {
-      const next = enableAi ? 0 : 1
-      setEnableAi(next)
-      const response = await fetch('http://localhost:8888/api/boss/config', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ enableAi: next }),
-      })
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      // 可选：校验返回体
-      // const updated = await response.json()
-    } catch (e) {
-      console.error('更新enable_ai失败:', e)
-      // 回滚
-      setEnableAi((prev) => (prev ? 0 : 1))
-      alert('切换失败，请检查后端服务连接')
+      setTestResult({ success: false, message: `连接失败: ${error instanceof Error ? error.message : '未知错误'}` })
+    } finally {
+      setTesting(false)
+      setShowDialog(true)
     }
   }
 
   const handleSave = async () => {
-    setLoading(true)
     try {
-      // 保存AI配置
-      const response = await fetch('http://localhost:8888/api/ai/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(aiConfig),
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        alert('AI配置已保存！')
-      } else {
-        alert('保存失败: ' + result.message)
-      }
+      localStorage.setItem('aiConfig', JSON.stringify(config))
+      alert('配置已保存到本地')
     } catch (error) {
-      console.error('保存AI配置失败:', error)
-      alert('保存失败，请检查服务器连接！')
-    } finally {
-      setLoading(false)
+      alert('保存失败')
     }
   }
+
+  const loadConfig = () => {
+    try {
+      const saved = localStorage.getItem('aiConfig')
+      if (saved) {
+        setConfig(JSON.parse(saved))
+      }
+    } catch (error) {
+      console.error('加载配置失败:', error)
+    }
+  }
+
+  useState(() => {
+    loadConfig()
+  })
 
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={<BiBrain className="text-2xl" />}
-        title="AI配置"
-        subtitle="配置AI相关的技能介绍和提示词"
-        iconClass="text-white"
-        accentBgClass="bg-purple-500"
+        icon={<BiCodeBlock className="text-2xl" />}
+        title="AI 配置"
+        subtitle="配置 AI API 接口信息"
         actions={
-          <Button
-            onClick={handleSave}
-            size="sm"
-            className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-4 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-            type="button"
-            disabled={loading}
-          >
-            <BiSave className="mr-1" /> 保存配置
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={testConnection}
+              size="sm"
+              variant="outline"
+              disabled={testing || !config.baseUrl || !config.apiKey}
+              className="rounded-full px-4"
+            >
+              {testing ? <BiLoader className="mr-1 animate-spin" /> : <BiCodeBlock className="mr-1" />}
+              测试连接
+            </Button>
+            <Button
+              onClick={handleSave}
+              size="sm"
+              className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-4 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            >
+              <BiSave className="mr-1" /> 保存配置
+            </Button>
+          </div>
         }
-        
       />
 
       <div className="space-y-6">
-        {/* AI配置 */}
         <Card className="animate-in fade-in slide-in-from-bottom-5 duration-700">
-          <CardHeader className="flex items-start gap-4">
-            <div className="min-w-0 space-y-2">
-              <CardTitle className="flex items-center gap-2">
-                <BiBrain className="text-primary" />
-                AI配置
-              </CardTitle>
-              <CardDescription>配置AI相关的技能介绍和提示词，用于生成个性化求职内容</CardDescription>
-            </div>
-            <div>
-              <button
-                type="button"
-                aria-label="AI启用开关"
-                onClick={toggleEnableAi}
-                className={`relative inline-flex h-7 w-14 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/40 border border-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,.25)] ${enableAi ? 'bg-emerald-500/80 hover:bg-emerald-500' : 'bg-white/10 hover:bg-white/15'}`}
-              >
-                <span
-                  className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${enableAi ? 'translate-x-7' : 'translate-x-0'}`}
-                />
-              </button>
-            </div>
+          <CardHeader>
+            <CardTitle>API 配置</CardTitle>
+            <CardDescription>配置 AI 服务的 API 信息</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="introduce">技能介绍</Label>
-                <Textarea
-                  id="introduce"
-                  value={aiConfig.introduce}
-                  onChange={(e) => setAiConfig({ ...aiConfig, introduce: e.target.value })}
-                  placeholder="请输入您的技能介绍，例如：我熟练使用Java、Python等语言进行开发..."
-                  className="min-h-[150px] resize-y"
-                />
-                <p className="text-xs text-muted-foreground">
-                  详细描述您的技能、经验和专业背景，AI将使用这些信息生成个性化的求职文本
-                </p>
-              </div>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="baseUrl">API Base URL</Label>
+              <Input
+                id="baseUrl"
+                value={config.baseUrl}
+                onChange={(e) => setConfig({ ...config, baseUrl: e.target.value })}
+                placeholder="https://ark.ap-southeast.bytepluses.com"
+              />
+              <p className="text-xs text-muted-foreground">AI 服务的基础 URL，不需要包含 /api/v3</p>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="prompt">AI提示词</Label>
-                <Textarea
-                  id="prompt"
-                  value={aiConfig.prompt}
-                  onChange={(e) => setAiConfig({ ...aiConfig, prompt: e.target.value })}
-                  placeholder="请输入AI提示词模板，例如：我目前在找工作，%s，我期望的岗位方向是【%s】..."
-                  className="min-h-[150px] resize-y"
-                />
-                <p className="text-xs text-muted-foreground">
-                  AI使用的提示词模板，支持使用 %s 作为占位符，用于动态插入内容
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">API Key</Label>
+              <Input
+                id="apiKey"
+                type="password"
+                value={config.apiKey}
+                onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
+                placeholder="sk-xxxxxxxxxxxxxxxxx"
+              />
+              <p className="text-xs text-muted-foreground">API 访问密钥</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="model">模型名称</Label>
+              <Input
+                id="model"
+                value={config.model}
+                onChange={(e) => setConfig({ ...config, model: e.target.value })}
+                placeholder="deepseek-v3-2-251201"
+              />
+              <p className="text-xs text-muted-foreground">要使用的 AI 模型</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* ��用说明 */}
-        <Card className="border-primary/20 bg-primary/5 animate-in fade-in slide-in-from-bottom-6 duration-700">
-          <CardContent className="pt-6">
-            <div className="flex gap-3">
-              <BiInfoCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-foreground mb-2">
-                  <strong className="font-semibold">使用说明：</strong>
-                </p>
-                <ul className="text-sm text-muted-foreground space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span><strong>技能介绍：</strong>用于AI了解您的专业技能、工作经验和技术背景，是生成个性化内容的基础</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span><strong>AI提示词：</strong>定义AI生成内容的模板和风格，支持使用 <code className="bg-muted px-1 py-0.5 rounded text-xs">%s</code> 作为占位符</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span><strong>效果：</strong>配置保存后，AI将在自动投递时使用这些信息生成匹配度高的求职沟通内容</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span><strong>提示：</strong>建议定期更新技能介绍以反映最新的技能和经验，提高匹配成功率</span>
-                  </li>
-                </ul>
-              </div>
+        {showDialog && testResult && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-[92%] max-w-sm border border-gray-200 dark:border-neutral-800">
+              <Card className="border-0">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {testResult.success ? (
+                      <BiCheckCircle className="text-green-500 text-2xl" />
+                    ) : (
+                      <BiXCircle className="text-red-500 text-2xl" />
+                    )}
+                    {testResult.success ? '测试成功' : '测试失败'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-muted-foreground mb-4">{testResult.message}</p>
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={() => setShowDialog(false)}
+                      className="rounded-full px-4"
+                      variant={testResult.success ? 'default' : 'destructive'}
+                    >
+                      知道了
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* 操作按钮（已迁移到右上角 PageHeader.actions，保持与环境配置一致） */}
+          </div>
+        )}
       </div>
     </div>
   )
